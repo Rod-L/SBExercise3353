@@ -1,0 +1,159 @@
+#include <iostream>
+#include <map>
+#include <vector>
+
+//add — добавить элемент с ключом;
+//remove — удалить все элементы с заданным ключом;
+//print — напечатать на экране все элементы с их ключами;
+//find — найти все элементы по их ключу.
+
+enum ValueType{
+    INT,
+    DOUBLE,
+    STRING
+};
+
+ValueType find_value_type(std::string& input) {
+    if (input.length() == 0) return ValueType::STRING;
+    for (char c : input) {
+        if (!std::isdigit(c) && c != '-' & c != '.') return ValueType::STRING;
+    }
+    if (input.find('.') < std::string::npos) return ValueType::DOUBLE;
+    return ValueType::INT;
+}
+
+void convert_from_string(std::string& value, int& acceptor) {
+    acceptor = std::stoi(value);
+}
+void convert_from_string(std::string& value, double& acceptor) {
+    acceptor = std::stod(value);
+}
+void convert_from_string(std::string& value, std::string& acceptor) {
+    acceptor = value;
+}
+
+template<typename T1, typename T2>
+struct Pair{
+    T1 key;
+    T2 value;
+};
+
+template<typename T1, typename T2>
+std::vector<Pair<T1,T2>> database;
+
+template<typename T1, typename T2>
+void add_pair(std::string& strKey, std::string& strValue) {
+    Pair<T1,T2> pair{};
+    convert_from_string(strKey, pair.key);
+    convert_from_string(strValue, pair.value);
+
+    database<T1,T2>.push_back(pair);
+    std::cout << "Added pair to database: (" << pair.key << "," << pair.value << ")" << std::endl;
+}
+
+template<typename T>
+void remove_pairs(T key) {
+    int count = 0;
+
+    {
+        auto dict = database<T, int>;
+        for (auto it = dict.begin(); it != dict.end(); ++it) {
+            if (key == it->key) {
+                dict.erase(it);
+                ++count;
+            }
+        }
+    }
+
+    {
+        auto dict = database<T, double>;
+        for (auto it = dict.begin(); it != dict.end(); ++it) {
+            if (key == it->key) {
+                dict.erase(it);
+                ++count;
+            }
+        }
+    }
+
+    {
+        auto dict = database<T, std::string>;
+        for (auto it = dict.begin(); it != dict.end(); ++it) {
+            if (key == it->key) {
+                dict.erase(it);
+                ++count;
+            }
+        }
+    }
+
+    std::cout << count << " entries with key '" << key << "' have been removed." << std::endl;
+}
+
+std::map<ValueType,std::map<ValueType,void(*)(std::string&, std::string&)>> add_methods;
+
+void init_methods() {
+    add_methods[INT][INT]       = &add_pair<int, int>;
+    add_methods[INT][DOUBLE]    = &add_pair<int, double>;
+    add_methods[INT][STRING]    = &add_pair<int, std::string>;
+    add_methods[DOUBLE][INT]    = &add_pair<double, int>;
+    add_methods[DOUBLE][DOUBLE] = &add_pair<double, double>;
+    add_methods[DOUBLE][STRING] = &add_pair<double, std::string>;
+    add_methods[STRING][INT]    = &add_pair<std::string, int>;
+    add_methods[STRING][DOUBLE] = &add_pair<std::string, double>;
+    add_methods[STRING][STRING] = &add_pair<std::string, std::string>;
+}
+
+void add() {
+    std::cout << "Enter key and value of new pair:" << std::endl;
+    std::string key, value;
+    std::cin >> key >> value;
+
+    ValueType key_type = find_value_type(key);
+    ValueType val_type = find_value_type(value);
+    add_methods[key_type][val_type](key, value);
+}
+
+void remove() {
+    std::cout << "Enter key, which you would like to remove:" << std::endl;
+    std::string strKey;
+    std::cin >> strKey;
+
+    ValueType key_type = find_value_type(strKey);
+    switch(key_type) {
+        case INT: {
+            int key;
+            convert_from_string(strKey, key);
+            remove_pairs(key);
+            break;
+        }
+        case DOUBLE: {
+            double key;
+            convert_from_string(strKey, key);
+            remove_pairs(key);
+            break;
+        }
+        case STRING: {
+            remove_pairs(strKey);
+            break;
+        }
+    }
+}
+
+int main() {
+    init_methods();
+
+    while (true) {
+        std::cout << "Enter command:" << std::endl;
+        std::string command;
+        std::cin >> command;
+
+        if (command == "exit") return 0;
+
+        if (command == "add") add();
+        else if (command == "remove") remove();
+        else if (command == "print") {}
+        else if (command == "find") {}
+        else {
+            std::cout << "Unknown command. Repeat input." << std::endl;
+        }
+    }
+}
